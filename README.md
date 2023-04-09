@@ -41,6 +41,36 @@ Don't just expire them all if you boot an old system that wasn't powered on for 
 
 ## Snapshot Creation
 
+We will create backup snapshots named `\_\_backup\_\_HOSTNAME\_\_2023-03-25` and short lived snapshots named `2023-04-09_161500Z`.
 
+### Backup Snapshot
+
+Create one backup snapshot on Monday at 1:55 local time. This backup will be transfered to a backup server for long time archiving.
+
+### Daily Snapshot
+
+Create a daily snapshot at 02:00 local time. These snapshots will not be expired on date but we will always keep at least 35 of them. We set the `ch.kzone.snapshot:type=daily` property on the snapshot to easily find them.
+
+### Frequent Snapshot
+
+Create a frequent snapshot every 15 minutes from 12:00 until 01:45. These snapshots will be expired after 24 hours. We set the `ch.kzone.snapshot:type=frequent` property.
 
 ## Snapshot Pruning
+
+### Backup Server
+
+No pruning on backup server. We only transfer the backup snapshots and keep them forever (one per week will result in 1000 snapshots for 20 years, this should work out for now).
+
+### Server
+
+- frequent snapshots are destroyed after 24 hours
+
+We probably run the prune script only once during the night, which means the snapshots can exist for a bit more than 24 hours.
+
+- daily snapshot
+
+Count them and remove all but the last 35 daily snapshots.
+
+- backup snapshots
+
+We need to ensure that the backup snapshots are kept on the server until they are successfully transfered to the backup server.
