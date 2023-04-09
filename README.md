@@ -20,9 +20,24 @@ ZFS supports atomic snapshots, there is no good reason to not create atomic snap
 
 Don't just expire them all if you boot an old system that wasn't powered on for 6 month.
 
-## Existing tools
+## Existing Tools
 
+### [zrepl](https://github.com/zrepl/zrepl)
 
+- does not create atomic snapshots [#634](https://github.com/zrepl/zrepl/issues/634)
+- cannot create different types of snapshots
+- expiration is smart but doesn't give us enough control [#691](https://github.com/zrepl/zrepl/issues/691), [#692](https://github.com/zrepl/zrepl/issues/692), [#693](https://github.com/zrepl/zrepl/issues/693)
+- cannot create snapshots without a prefix [#694](https://github.com/zrepl/zrepl/issues/694)
+- no status output to check if all snapshots were created correctly [Comment 1841410](https://github.com/zrepl/zrepl/discussions/547#discussioncomment-1841410)
+
+### [Sanoid](https://github.com/jimsalterjrs/sanoid)
+
+- uses snapshot names like daily\_ and hourly\_
+- makes it complicated to change the retention policy at a later time because the retention is part of the snapshot name when it is created. (e.g. you can't easily switch from 365 daily to 52 weekly snapshots without manually renaming them)
+
+### [zfsnap](https://github.com/zfsnap/zfsnap)
+
+- project is unmaintained [#109](https://github.com/zfsnap/zfsnap/issues/109)
 
 ## Snapshot Creation
 
