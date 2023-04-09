@@ -39,6 +39,11 @@ Don't just expire them all if you boot an old system that wasn't powered on for 
 
 - project is unmaintained [#109](https://github.com/zfsnap/zfsnap/issues/109)
 
+### [ZnapZend](https://github.com/oetiker/znapzend)
+
+- whenever a new filesystem is created it must be configured with ZFS properties (inherited properties are ignored) and the daemon must be restarted
+- does only support push mode for backups, not the architecturally more secure pull mode
+
 ## Snapshot Creation
 
 We will create backup snapshots named `__backup__HOSTNAME__2023-03-25` and short lived snapshots named `2023-04-09_161500Z`.
