@@ -43,6 +43,7 @@ Don't just expire them all if you boot an old system that wasn't powered on for 
 
 - whenever a new filesystem is created it must be configured with ZFS properties (inherited properties are ignored) and the daemon must be restarted
 - does only support push mode for backups, not the architecturally more secure pull mode
+- runs as daemon and automatically starts destroying expired snapshots on system boot - which can leave you with no snapshots if the system wasn't powered up for e.g. 6 month
 
 ## Snapshot Creation
 
