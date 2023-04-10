@@ -24,10 +24,13 @@ no warnings 'qw';
 use Cwd            ();
 use File::Basename ();
 use File::Spec     ();
+use FileHandle     ();
 use Getopt::Long;
 
 use constant PFEXEC => '/usr/bin/pfexec';
 use constant ZFS    => '/usr/sbin/zfs';
+
+STDOUT->autoflush(1);
 
 main();
 
@@ -106,17 +109,40 @@ sub main {
         system( PFEXEC, ZFS, 'snapshot', '-o', "ch.kzone:zfs-snapshot-type=$snapshot_type", @snapshots ) == 0 or do {
             warn "Creating snapshots failed";
 
-            system( qw(curl -k -o /dev/zero --no-progress-meter), "${kuma_base}?status=down&msg=could%20not%20create%20snapshots" ) == 0 or die "Cannot call Uptime Kuma";
+            curl("${kuma_base}?status=down&msg=could%20not%20create%20snapshots");
             $ok = 0;
         }
     }
 
     exit 1 if !$ok;
 
-    system( qw(curl -k -o /dev/zero --no-progress-meter), "${kuma_base}?status=up&msg=OK" ) or die "Cannot call Uptime Kuma";
+    curl("${kuma_base}?status=up&msg=OK");
     exit 0;
 }
 
 sub usage {
     die "usage: $0 -t <snapshot type>\n";
+}
+
+sub curl {
+    my ($url) = @_;
+
+    if ( open my $fh, '-|', qw(curl -k --fail-with-body --no-progress-meter), $url ) {
+        my @lines = <$fh>;
+
+        my $ok = 1;
+        if ( !close($fh) ) {
+            $ok = 0;
+        }
+        if ( $? != 0 ) {
+            $ok = 0;
+        }
+
+        return if $ok;
+
+        warn join q{}, @lines;
+    }
+
+    warn "Cannot get $url: $!";
+    return;
 }
