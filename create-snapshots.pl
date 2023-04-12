@@ -72,7 +72,7 @@ sub main {
             $hostname = 'adarak';
         }
 
-        $snapshot_name_prefix = "__backup__${hostname}__";
+        $snapshot_name_prefix = "__backup__";
     }
 
     # read the base URL to update Update Kuma from config file
@@ -120,7 +120,7 @@ sub main {
 }
 
 sub usage {
-    die "usage: $0 -t <snapshot type>\n";
+    die "usage: $0 -t < backup | daily | frequent >\n";
 }
 
 sub curl {

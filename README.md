@@ -48,7 +48,7 @@ Don't just expire them all if you boot an old system that wasn't powered on for 
 
 ## Snapshot Creation
 
-We will create backup snapshots named `__backup__HOSTNAME__2023-03-25` and short lived snapshots named `2023-04-09_161500Z`.
+We will create backup snapshots named `__backup__2023-03-25` and short lived snapshots named `2023-04-09_161500Z`.
 
 ### Backup Snapshot
 
