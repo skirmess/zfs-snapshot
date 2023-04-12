@@ -9,7 +9,7 @@ A better way would be to set a user property on the snapshot itself. This has th
 User properties can be set on the snapshot during its creation like so:
 
 ```sh
-$ pfexec zfs snapshot -o ch.kzone.snapshot:type=daily rpool/home@2023-04-09_155300Z
+$ pfexec zfs snapshot -o ch.kzone:zfs-snapshot-type=daily rpool/home@2023-04-09_155300Z
 ```
 
 ### Atomic Snapshots
@@ -29,6 +29,7 @@ Don't just expire them all if you boot an old system that wasn't powered on for 
 - expiration is smart but doesn't give us enough control [#691](https://github.com/zrepl/zrepl/issues/691), [#692](https://github.com/zrepl/zrepl/issues/692), [#693](https://github.com/zrepl/zrepl/issues/693)
 - cannot create snapshots without a prefix [#694](https://github.com/zrepl/zrepl/issues/694)
 - no status output to check if all snapshots were created correctly [Comment 1841410](https://github.com/zrepl/zrepl/discussions/547#discussioncomment-1841410)
+- runs two 'zfs list' to list all snapshots every time it runs (e.g. every 15 minutes) which is very wasteful on backup system with a huge amount of snapshots
 
 ### [Sanoid](https://github.com/jimsalterjrs/sanoid)
 
@@ -55,11 +56,11 @@ Create one backup snapshot on Monday at 1:55 local time. This backup will be tra
 
 ### Daily Snapshot
 
-Create a daily snapshot at 02:00 local time. These snapshots will not be expired on date but we will always keep at least 35 of them. We set the `ch.kzone.snapshot:type=daily` property on the snapshot to easily find them.
+Create a daily snapshot at 02:00 local time. These snapshots will not be expired on date but we will always keep at least 35 of them. We set the `ch.kzone:zfs-snapshot-type=daily` property on the snapshot to easily find them.
 
 ### Frequent Snapshot
 
-Create a frequent snapshot every 15 minutes from 12:00 until 01:45. These snapshots will be expired after 24 hours. We set the `ch.kzone.snapshot:type=frequent` property.
+Create a frequent snapshot every 15 minutes from 12:00 until 01:45. These snapshots will be expired after 24 hours. We set the `ch.kzone:zfs-snapshot-type=frequent` property.
 
 ## Snapshot Pruning
 

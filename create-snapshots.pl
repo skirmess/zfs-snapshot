@@ -48,7 +48,6 @@ sub main {
     my $snapshot_type = $opt{t};
 
     # get all filesystmes and volumes which we want to create a snapshot on
-    my %filesystem_and_volumes;
     open my $fh, '-|', ZFS, qw(list -H -o name,ch.kzone:zfs-snapshot) or die "Cannot run zfs list: $!";
     my @lines = <$fh>;
     close $fh or die "Cannot run zfs list: $!";
