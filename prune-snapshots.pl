@@ -78,7 +78,7 @@ sub main {
 
         exit 1 if !$ok;
 
-        curl("${kuma_base}?status=up&msg=OK&ping=$num_pruned");
+        curl("${kuma_base}?status=up&msg=OK");
 
         exit 0;
     }
