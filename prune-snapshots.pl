@@ -134,9 +134,7 @@ sub prune_snapshots {
             $daily_seen++;
 
             if ( $daily_seen > NUM_DAILY_TO_KEEP ) {
-
-                # TODO
-                # push @to_prune, $name;
+                push @to_prune, $name;
                 push @debug, sprintf SNAPSHOT_DEBUG_FORMAT, 'PRUNE', $type, $name;
             }
             else {
