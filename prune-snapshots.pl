@@ -29,6 +29,7 @@ use FileHandle     ();
 use constant NUM_DAILY_TO_KEEP         => 35;
 use constant SECONDS_TO_KEEP_FREQUENTS => 24 * 60 * 60;
 use constant FREQUENTS_CUT_OFF_TIME    => time() - SECONDS_TO_KEEP_FREQUENTS;
+use constant BACKUPS_TO_KEEP           => 3;
 
 use constant SNAPSHOT_DEBUG_FORMAT => '%-11s %-8s %s';
 
@@ -103,15 +104,27 @@ sub usage {
 sub prune_snapshots {
     my ( $filesystem_or_volume, $debug ) = @_;
 
+    # get guid of FS
+    open my $fh, '-|', ZFS, qw(get -Hp guid), $filesystem_or_volume or die "Cannot get guid from $filesystem_or_volume: $!";
+    my @lines = <$fh>;
+    close $fh or die "Cannot get snapshots from $filesystem_or_volume: $!";
+    chomp @lines;
+    die if @lines != 1;
+    die if $lines[0] !~ m{ \A \Q$filesystem_or_volume\E \t guid \t ( [1-9][0-9]*) \t }xsm;
+    my $guid = $1;
+
+    #
     my @to_prune;
 
-    open my $fh, '-|', ZFS, qw(list -Hp -t snapshot -d 1 -o name,creation,ch.kzone:zfs-snapshot-type), $filesystem_or_volume or die "Cannot get snapshots from $filesystem_or_volume: $!";
-    my @lines = <$fh>;
+    open $fh, '-|', ZFS, qw(list -Hp -t snapshot -d 1 -o name,creation,ch.kzone:zfs-snapshot-type), $filesystem_or_volume or die "Cannot get snapshots from $filesystem_or_volume: $!";
+    @lines = <$fh>;
     close $fh or die "Cannot get snapshots from $filesystem_or_volume: $!";
 
     chomp @lines;
 
     my @debug;
+
+    my $check_backup = check_backup($filesystem_or_volume, $guid);
 
     my $daily_seen = 0;
   LINE:
@@ -124,9 +137,16 @@ sub prune_snapshots {
         }
 
         if ( $type eq 'backup' ) {
+            my ( $can_delete, $msg) = $check_backup->($name);
 
-            # TODO backup snaps not yet pruned
-            push @debug, sprintf SNAPSHOT_DEBUG_FORMAT, 'KEEP (TODO)', $type, $name;
+            if ( $can_delete ) {
+                push @to_prune, $name;
+                push @debug, sprintf SNAPSHOT_DEBUG_FORMAT, "PRUNE $msg", $type, $name;
+            }
+            else {
+                push @debug, sprintf SNAPSHOT_DEBUG_FORMAT, "KEEP $msg", $type, $name;
+            }
+
             next LINE;
         }
 
@@ -166,6 +186,109 @@ sub prune_snapshots {
     }
 
     return @to_prune;
+}
+
+sub check_backup {
+    my ($filesystem_or_volume, $guid) = @_;
+
+    my $bynaus_file_name = "/home/admin/backup/bynaus.${guid}.txt";
+    my $corinth_file_name = "/home/admin/backup/corinth.${guid}.txt";
+
+    my %bynaus_backed_up;
+    my %bynaus_backed_up_and_keep;
+    my %corinth_backed_up;
+    my %corinth_backed_up_and_keep;
+
+  SNAP:
+    for my $snap ( reverse _check_backup_load_file($bynaus_file_name, $filesystem_or_volume, $guid) ) {
+        if ( scalar keys %bynaus_backed_up_and_keep < 3 ) {
+            $bynaus_backed_up_and_keep{$snap} = 1;
+            next SNAP;
+        }
+        $bynaus_backed_up{$snap} = 1;
+    }
+
+  SNAP:
+    for my $snap ( reverse _check_backup_load_file($corinth_file_name, $filesystem_or_volume, $guid) ) {
+        if ( scalar keys %corinth_backed_up_and_keep < BACKUPS_TO_KEEP ) {
+            $corinth_backed_up_and_keep{$snap} = 1;
+            next SNAP;
+        }
+        $corinth_backed_up{$snap} = 1;
+    }
+
+    return sub {
+        my ($snap) = @_;
+
+        my $result;
+        my $can_delete = 1;
+        if ( exists $bynaus_backed_up_and_keep{$snap} ) {
+            $result .= "B!";
+            $can_delete = 0;
+        }
+        elsif ( exists $bynaus_backed_up{$snap} ) {
+            $result .= "B+";
+        }
+        else {
+            $result .= "B-";
+            $can_delete = 0;
+        }
+
+        $result .= q{ };
+
+        if ( exists $corinth_backed_up_and_keep{$snap} ) {
+            $result .= "C!";
+            $can_delete = 0;
+        }
+        elsif ( exists $corinth_backed_up{$snap} ) {
+            $result .= "C+";
+        }
+        else {
+            $result .= "C-";
+            $can_delete = 0;
+        }
+
+        return($can_delete, $result);
+    };
+}
+
+sub _check_backup_load_file {
+    my ($file, $name, $guid) = @_;
+
+    return if !-f $file;
+
+    open my $fh, '<', $file or die "Cannot read file $file: $!";
+
+    my $line = <$fh>;
+    chomp $line;
+    die "File $file is corrupt: invalid name: $line" if $line ne "NAME $name";
+
+    $line = <$fh>;
+    chomp $line;
+    die "File $file is corrupt: invalid guid: $line" if $line ne "GUID $guid";
+
+    my $end_seen = 0;
+    my @snaps;
+  LINE:
+    while (defined (my $line = <$fh>)) {
+        die "Content after end: $line" if $end_seen;
+        chomp $line;
+
+        if ( $line eq 'END' ) {
+            $end_seen = 1;
+            next LINE;
+        }
+
+        die "Corrupt file $file: unexpected $line" if $line !~ m{ \A SNAP \s ( __backup__ [12][0-9][0-9][0-9] - [01][0-9] - [0-3][0-9] ) \z }xsm;
+        push @snaps, "$name\@$1";
+        next LINE;
+    }
+
+    die "File $file is corrupt: end not seen" if !$end_seen;
+
+    close $fh or die "Cannot read file $file: $!";
+
+    return @snaps;
 }
 
 sub curl {
